@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-class Candles(BaseModel):
+class Candle(BaseModel):
     timestamp: str
     symbol: str
     open: float
