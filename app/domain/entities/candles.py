@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 
+
 class Candle(BaseModel):
     timestamp: str
     symbol: str
