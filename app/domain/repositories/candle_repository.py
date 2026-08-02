@@ -6,8 +6,8 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
-from domain.entities import Candle
-from app.domain.models.candles import CandleRow
+from domain.entities.candles import Candle
+from domain.models.candles import CandleRow
 
 
 class CandleRepository:
