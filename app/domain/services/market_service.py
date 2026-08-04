@@ -20,6 +20,7 @@ class MarketDataService:
         self.exchange_name = exchange_name
         self.timeframe = timeframe.ccxt_value
         self.exchange = getattr(ccxt, exchange_name)()
+        self.exchange.verbose = False
         self.timeframe_ms = timeframe.value
         self.logger = logger or AppLogger(None)
 

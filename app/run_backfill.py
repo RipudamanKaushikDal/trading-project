@@ -22,6 +22,14 @@ def setup_logging() -> AppLogger:
     return AppLogger(base)
 
 
+def stop_ccxt_debug_logging() -> None:
+    # Keep third-party noise down even when LOG_LEVEL=DEBUG
+    logging.getLogger("ccxt").setLevel(logging.WARNING)
+    logging.getLogger("ccxt.base.exchange").setLevel(logging.WARNING)
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    logging.getLogger("requests").setLevel(logging.WARNING)
+
+
 def run() -> None:
     app_logger = setup_logging()
     symbols = ["BTC/CAD"]

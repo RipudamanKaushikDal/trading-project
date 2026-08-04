@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from domain.models.candles import Base
+from domain.models.base import Base
 
 load_dotenv()
 
