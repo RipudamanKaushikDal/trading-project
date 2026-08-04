@@ -98,3 +98,12 @@ class CandleFeatureEngineeringService:
         self.logger.info("Stored candle features", symbol=symbol,
                          timeframe=timeframe, count=len(features))
         return len(features)
+
+    def get_features(
+        self,
+        symbol: str,
+        timeframe: str,
+        start_time: datetime,
+        end_time: datetime,
+    ) -> list[CandleFeature]:
+        return list(self.feature_repo.get_features(symbol, timeframe, start_time, end_time))
