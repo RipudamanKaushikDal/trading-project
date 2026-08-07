@@ -43,6 +43,8 @@ class CandleFeatureRepository:
                 "atr": self._to_decimal(f.atr),
                 "adx": self._to_decimal(f.adx),
                 "returns": self._to_decimal(f.returns),
+                "forward_return_6h": self._to_decimal(f.forward_return_6h),
+                "label": f.label.value if f.label is not None else None,
             }
             for f in features
         ]
@@ -67,6 +69,8 @@ class CandleFeatureRepository:
                 "atr": stmt.excluded.atr,
                 "adx": stmt.excluded.adx,
                 "returns": stmt.excluded.returns,
+                "forward_return_6h": stmt.excluded.forward_return_6h,
+                "label": stmt.excluded.label,
             },
         )
         self.session.execute(stmt)

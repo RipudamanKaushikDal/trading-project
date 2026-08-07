@@ -32,13 +32,13 @@ def stop_ccxt_debug_logging() -> None:
 
 def run() -> None:
     app_logger = setup_logging()
-    symbols = ["BTC/CAD"]
+    symbols = ["BTC/USD"]
 
     market_logger = app_logger.child(component="market")
     backfill_logger = app_logger.child(component="backfill")
 
     market_service = MarketDataService(
-        exchange_name="kraken",
+        exchange_name="bitstamp",
         timeframe=TIMEFRAME.HOUR_1,
         logger=market_logger,
     )

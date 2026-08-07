@@ -1,10 +1,11 @@
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, Index, Numeric, String, UniqueConstraint, func
+from sqlalchemy import DateTime, Enum, Index, Numeric, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from domain.models.base import Base
+from domain.entities.signals import Signal
 
 
 class CandleFeatureRow(Base):
@@ -43,6 +44,11 @@ class CandleFeatureRow(Base):
         Numeric(precision=20, scale=10), nullable=True)
     returns: Mapped[Decimal | None] = mapped_column(
         Numeric(precision=20, scale=10), nullable=True)
+    forward_return_6h: Mapped[Decimal | None] = mapped_column(
+        Numeric(precision=20, scale=10), nullable=True)
+    label: Mapped[Signal | None] = mapped_column(
+        Enum(Signal, name="signal_enum", native_enum=False), nullable=True
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

@@ -1,4 +1,5 @@
 from typing import Annotated
+from .signals import Signal
 from pydantic import BaseModel, ConfigDict, Field
 
 TimestampMs = Annotated[str, Field(pattern=r"^\d{13}$")]
@@ -32,3 +33,6 @@ class CandleFeature(BaseModel):
     atr: Metric | None = Field(default=None, ge=0)
     adx: Metric | None = Field(default=None, ge=0, le=100)
     returns: Metric | None = None
+
+    forward_return_6h: Metric | None = None
+    label: Signal | None = None

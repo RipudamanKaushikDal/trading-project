@@ -87,9 +87,15 @@ class HistoricalBackfillService:
                         "No more candles returned", cursor=cursor)
                     break
 
-                bounded_candles = [
-                    candle for candle in candles if int(candle.timestamp) <= end_ms
-                ]
+                bounded_candles = []
+                max_bounded_ts = None
+                for candle in candles:
+                    candle_ts = int(candle.timestamp)
+                    if candle_ts <= end_ms:
+                        bounded_candles.append(candle)
+                        if max_bounded_ts is None or candle_ts > max_bounded_ts:
+                            max_bounded_ts = candle_ts
+
                 if not bounded_candles:
                     symbol_logger.info(
                         "Reached end time boundary",
@@ -108,8 +114,7 @@ class HistoricalBackfillService:
                     count=len(bounded_candles),
                 )
 
-                next_cursor = int(candles[-1].timestamp) + \
-                    self.market_service.timeframe_ms
+                next_cursor = max_bounded_ts + self.market_service.timeframe_ms
                 if next_cursor <= cursor:
                     symbol_logger.warning(
                         "Stopping because cursor did not advance",

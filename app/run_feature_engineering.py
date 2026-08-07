@@ -23,10 +23,23 @@ def setup_logging() -> AppLogger:
     return AppLogger(base)
 
 
+def _get_fee_rate() -> float:
+    raw = os.getenv("FEE_RATE", "0.001")
+    try:
+        fee_rate = float(raw)
+    except ValueError as exc:
+        raise ValueError(f"Invalid FEE_RATE value: {raw}") from exc
+
+    if fee_rate < 0:
+        raise ValueError(f"FEE_RATE must be non-negative, got: {fee_rate}")
+    return fee_rate
+
+
 def run() -> None:
     app_logger = setup_logging()
-    symbols = ["BTC/CAD"]
+    symbols = ["BTC/USD"]
     timeframe = TIMEFRAME.HOUR_1.ccxt_value
+    fee_rate = _get_fee_rate()
 
     end_time = datetime.now(UTC)
     start_time = end_time - timedelta(days=365)
@@ -40,6 +53,7 @@ def run() -> None:
             candle_repo=candle_repo,
             feature_repo=feature_repo,
             logger=app_logger.child(component="feature_engineering"),
+            fee_rate=fee_rate,
         )
 
         for symbol in symbols:
@@ -53,6 +67,7 @@ def run() -> None:
                 "Feature engineering completed for symbol",
                 symbol=symbol,
                 timeframe=timeframe,
+                fee_rate=fee_rate,
                 count=count,
             )
 

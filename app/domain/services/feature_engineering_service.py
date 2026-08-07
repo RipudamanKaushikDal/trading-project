@@ -1,27 +1,46 @@
 from datetime import datetime
 import pandas as pd
 import pandas_ta as ta
+from domain.entities.signals import Signal
 
 from domain.entities.candle_feature import CandleFeature
+from domain.entities.timestamps import TIMEFRAME
 from domain.repositories.candle_repository import CandleRepository
 from domain.repositories.candle_feature_repository import CandleFeatureRepository
 from domain.services.logging_service import AppLogger
 
 
 class CandleFeatureEngineeringService:
+    LOOKAHEAD_HOURS = 6
+    BUY_THRESHOLD = 0.01
+    SELL_THRESHOLD = -0.01
+
     def __init__(
         self,
         candle_repo: CandleRepository,
         feature_repo: CandleFeatureRepository,
         logger: AppLogger | None = None,
+        fee_rate: float = 0.001,  # 0.1% per side by default
     ):
         self.candle_repo = candle_repo
         self.feature_repo = feature_repo
         self.logger = logger or AppLogger(None)
+        self.fee_rate = fee_rate
+        self.timeframe_to_ms = {tf.ccxt_value: tf.value for tf in TIMEFRAME}
 
     @staticmethod
     def _nan_to_none(value: float):
         return None if pd.isna(value) else float(value)
+
+    @classmethod
+    def _label_from_return(cls, value: float | None) -> Signal | None:
+        if value is None or pd.isna(value):
+            return None
+        if value > cls.BUY_THRESHOLD:
+            return Signal.BUY
+        if value < cls.SELL_THRESHOLD:
+            return Signal.SELL
+        return Signal.HOLD
 
     def build_and_store(
         self,
@@ -34,7 +53,8 @@ class CandleFeatureEngineeringService:
             symbol, timeframe, start_time, end_time))
         if not candles:
             self.logger.info(
-                "No candles found for feature engineering", symbol=symbol, timeframe=timeframe)
+                "No candles found for feature engineering", symbol=symbol, timeframe=timeframe
+            )
             return 0
 
         df = pd.DataFrame(
@@ -71,6 +91,28 @@ class CandleFeatureEngineeringService:
 
         df["returns"] = df["close"].pct_change()
 
+        timeframe_ms = self.timeframe_to_ms.get(timeframe)
+        if timeframe_ms is None:
+            raise ValueError(
+                f"Unsupported timeframe for labeling: {timeframe}")
+
+        lookahead_ms = self.LOOKAHEAD_HOURS * 60 * 60 * 1000
+        if lookahead_ms % timeframe_ms != 0:
+            raise ValueError(
+                f"Lookahead {self.LOOKAHEAD_HOURS}h is not aligned with timeframe {timeframe}"
+            )
+
+        lookahead_steps = lookahead_ms // timeframe_ms
+        df["future_close_6h"] = df["close"].shift(-lookahead_steps)
+
+        # Round-trip net return: buy now (pay fee), sell after lookahead (pay fee)
+        df["forward_return_6h"] = (
+            (df["future_close_6h"] * (1 - self.fee_rate)) /
+            (df["close"] * (1 + self.fee_rate))
+        ) - 1.0
+
+        df["label"] = df["forward_return_6h"].apply(self._label_from_return)
+
         features: list[CandleFeature] = []
         for row in df.itertuples(index=False):
             features.append(
@@ -91,12 +133,15 @@ class CandleFeatureEngineeringService:
                     atr=self._nan_to_none(row.atr),
                     adx=self._nan_to_none(row.adx),
                     returns=self._nan_to_none(row.returns),
+                    forward_return_6h=self._nan_to_none(row.forward_return_6h),
+                    label=row.label,
                 )
             )
 
         self.feature_repo.upsert_many(features)
-        self.logger.info("Stored candle features", symbol=symbol,
-                         timeframe=timeframe, count=len(features))
+        self.logger.info(
+            "Stored candle features", symbol=symbol, timeframe=timeframe, count=len(features)
+        )
         return len(features)
 
     def get_features(
